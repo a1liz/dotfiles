@@ -1,0 +1,94 @@
+# Custom Aliases
+alias cp="rsync -ah --progress"
+alias ll="ls -l"
+alias ls="ls --color=auto"
+alias l.="ls -d .* --color=auto"
+alias ..="cd .."
+alias grep="grep --color=auto"
+alias egrep="egrep --color=auto"
+alias fgrep="fgrep --color=auto"
+alias bc='bc -l'
+alias sha1='openssl sha1'
+alias mkdir='mkdir -pv'
+#alias mount='mount |column -t'
+alias h='history'
+alias j='jobs -l'
+alias path='echo -e ${PATH//:/\\n}'
+alias now='date +"%T"'
+alias nowtime=now
+alias nowdate='date +"%d-%m-%Y"'
+# do not delete / or prompt if deleting more than 3 files at a time #
+alias rm='rm -I --preserve-root'
+# confirmation #
+alias ln='ln -i'
+# Parenting changing perms on / #
+alias chown='chown --preserve-root'
+alias chmod='chmod --preserve-root'
+alias chgrp='chgrp --preserve-root'
+#alias top='htop'
+# alias proxy='_proxy(){ export http_proxy=http://$1:7890 https_proxy=http://$1:7890 all_proxy=http://$1:7890; git config --global http.proxy "http://$1:7890"; git config --global https.proxy "https://$1:7890"; }; _proxy'
+alias proxy='_proxy(){
+  host=$1
+
+  # 1. 环境变量
+  export http_proxy=http://$host:7890
+  export https_proxy=http://$host:7890
+  export all_proxy=socks5://$host:7890
+
+  # 2. git config
+  git config --global http.proxy "http://$host:7890"
+  git config --global https.proxy "http://$host:7890"
+
+  # 3. 写入 ~/.ssh/config
+  mkdir -p ~/.ssh
+  chmod 700 ~/.ssh
+
+  # 先删除旧的 github.com 配置
+  sed -i "/^Host github.com$/,/^$/d" ~/.ssh/config 2>/dev/null
+
+  # 写入新的
+  cat >> ~/.ssh/config <<EOF
+
+Host github.com
+  HostName ssh.github.com
+  User git
+  Port 443
+  ProxyCommand nc -x $host:7890 -X connect %h %p
+
+EOF
+
+  echo "✅ proxy set to $host:7890 (git + ssh)"
+}; _proxy'
+alias proxyme='proxy $(who am I | grep -Pom 1 "[0-9.]{7,15}"); echo "Set proxy with $http_proxy"'
+# alias echoproxy='echo "http_proxy = $http_proxy"; echo "https_proxy = $https_proxy"; echo "all_proxy = $all_proxy"; echo "git http.proxy = $(git config --get http.proxy)"; echo "git https.proxy = $(git config --get https.proxy)";'
+# alias unproxy='export http_proxy="" https_proxy="" all_proxy=""; git config --global http.proxy ""; git config --global https.proxy ""; '
+alias echoproxy='_echoproxy(){
+  echo "🌐 env:"
+  echo "  http_proxy  = ${http_proxy:-<empty>}"
+  echo "  https_proxy = ${https_proxy:-<empty>}"
+  echo "  all_proxy   = ${all_proxy:-<empty>}"
+
+  echo ""
+  echo "🧩 git:"
+  echo "  http.proxy  = $(git config --global --get http.proxy || echo "<unset>")"
+  echo "  https.proxy = $(git config --global --get https.proxy || echo "<unset>")"
+
+  echo ""
+  echo "🔐 ssh (github.com):"
+  awk "/^Host github.com$/,/^$/" ~/.ssh/config 2>/dev/null || echo "  <no config>"
+}; _echoproxy'
+alias unproxy='_unproxy(){
+  # 1. 清理环境变量
+  unset http_proxy https_proxy all_proxy
+
+  # 2. 清理 git proxy
+  git config --global --unset http.proxy 2>/dev/null
+  git config --global --unset https.proxy 2>/dev/null
+
+  # 3. 清理 ssh github proxy
+  if [ -f ~/.ssh/config ]; then
+    sed -i "/^Host github.com$/,/^$/d" ~/.ssh/config
+  fi
+
+  echo "❌ proxy cleared (env + git + ssh)"
+}; _unproxy'
