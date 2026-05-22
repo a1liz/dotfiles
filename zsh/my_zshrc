@@ -48,7 +48,6 @@ alias proxy='_proxy(){
 
   # 写入新的
   cat >> ~/.ssh/config <<EOF
-
 Host github.com
   HostName ssh.github.com
   User git
