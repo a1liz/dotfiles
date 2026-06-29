@@ -109,9 +109,17 @@ install_zsh_extras() {
 deploy_dotfiles() {
     info "Deploying dotfiles..."
 
+    local backup_suffix=".backup.$(date +%Y%m%d-%H%M%S)"
+
+    for target in "$HOME/.zshrc" "$HOME/.my_zshrc" "$HOME/.tmux.conf"; do
+        if [ -f "$target" ] && [ ! -L "$target" ]; then
+            cp "$target" "${target}${backup_suffix}"
+            warn "Backed up existing $target → ${target}${backup_suffix}"
+        fi
+    done
+
     ln -sf "$DOTFILES/zsh/zshrc"      "$HOME/.zshrc"
     ln -sf "$DOTFILES/zsh/my_zshrc"   "$HOME/.my_zshrc"
-    ln -sf "$DOTFILES/zsh/p10k.zsh"   "$HOME/.p10k.zsh"
     ln -sf "$DOTFILES/tmux/tmux.conf" "$HOME/.tmux.conf"
 
     ok "Dotfiles symlinked"
@@ -168,6 +176,19 @@ EOF
     warn "Edit ~/.zshrc.local to add your machine-specific config."
 }
 
+# ── p10k template ──────────────────────────────────────
+
+setup_p10k() {
+    if [ -f "$HOME/.p10k.zsh" ]; then
+        ok "~/.p10k.zsh already exists, skipping"
+        return
+    fi
+
+    info "Copying p10k template to ~/.p10k.zsh..."
+    cp "$DOTFILES/zsh/p10k.zsh" "$HOME/.p10k.zsh"
+    ok "p10k template copied — run 'p10k configure' to customize for this machine"
+}
+
 # ── main ───────────────────────────────────────────────
 
 echo ""
@@ -185,6 +206,8 @@ install_zsh_extras
 echo ""
 deploy_dotfiles
 echo ""
+setup_p10k
+echo ""
 install_tmux_extras
 echo ""
 setup_local
@@ -194,6 +217,7 @@ ok "All done!"
 echo ""
 echo "  Next steps:"
 echo "    1. Re-login or run: exec zsh"
-echo "    2. Edit ~/.zshrc.local to add machine-specific secrets"
-echo "    3. In tmux: prefix + I to install plugins"
+echo "    2. Run 'p10k configure' to customize your prompt for this machine"
+echo "    3. Edit ~/.zshrc.local to add machine-specific secrets"
+echo "    4. In tmux: prefix + I to install plugins"
 echo ""
